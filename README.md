@@ -1,79 +1,51 @@
-# Trigger
-Este projeto demonstra o uso de triggers no MySQL para automatizar ações em tabelas de um banco de dados acadêmico.
-AulasTrigger.sql
-CREATE SCHEMA IF NOT EXISTS AulaTrigger DEFAULT CHARACTER SET utf8;
-use Aulatrigger;
+<h1 align="center">Triggers no MySQL</h1>
 
-CREATE TABLE IF NOT EXISTS Alunos (
-cod int not null auto_increment,
-nome VARCHAR(100) not null,
-curso int not null,
-status int not null,
-primary key (cod)
-) ENGINE = InnoDB;
+<p align="center">
+  <img src="https://img.shields.io/badge/MySQL-8a2be2?style=for-the-badge&logo=mysql&logoColor=white" />
+  <img src="https://img.shields.io/badge/SQL-ff69b4?style=for-the-badge&logo=databricks&logoColor=white" />
+  <img src="https://img.shields.io/badge/Status-Concluído-8a2be2?style=for-the-badge" />
+</p>
 
-select * from Alunos;
+<p align="center">
+  Banco de dados acadêmico que usa <b>triggers</b> para automatizar ações:<br>
+  matrícula automática ao cadastrar um aluno e auditoria de alterações.
+</p>
 
-CREATE TABLE IF NOT EXISTS Curso (
-cod int not null auto_increment,
-descricao VARCHAR(200) not null,
-primary key (cod)
-) ENGINE = InnoDB;
+---
 
-select * from Curso;
+## Estrutura
 
-CREATE TABLE IF NOT EXISTS Matricula (
-cod int not null auto_increment,
-Aluno_cod int not null,
-Curso_cod int not null,
-primary key (cod)
-) ENGINE = InnoDB;
+```
+Trigger/
+├── aulas_trigger.sql   # Script completo do banco
+└── README.md
+```
 
-select * from Matricula;
+## Modelo de dados
 
- INSERT INTO Curso VALUES (null,"Ciências da Computação");
- INSERT INTO Curso VALUES (null,"Tecnologia em Analise e desenvolvimento de sistemas");
- INSERT INTO Curso VALUES (null,"Engenharia da Computação");
- INSERT INTO Curso VALUES (null,"Sistema de Informação");
- 
- select * from Curso;
- 
- set delimiter $$
- create trigger tg_Matricula
- after insert on Alunos
- for each row begin
- insert into Matricula values (null, new.cod, new.Curso);
- end;
- 
-set delimiter ;
-insert into Alunos values (null,"Carla Soares",2,1);
-insert into Alunos values (null,"Fabricio Dos Reis",4,1);
-select * from Alunos;
+| Tabela      | Campos principais                                                      |
+| :---------- | :--------------------------------------------------------------------- |
+| `Curso`     | `cod` (PK), `descricao`                                                 |
+| `Aluno`     | `cod` (PK), `nome`, `curso` (FK), `status`                              |
+| `Matricula` | `cod` (PK), `aluno_cod` (FK), `curso_cod` (FK), `data_matricula`        |
+| `Auditoria` | `id` (PK), `aluno_cod`, `nome_antigo`, `nome_novo`, `acao`, `modificado` |
 
-show triggers;
+## Triggers
 
-CREATE TABLE IF NOT EXISTS Auditoria (
-id int not null auto_increment,
-cod int not null,
-nome varchar(100) not null,
-modificado datetime default null,
-acao varchar(50) default null,
-primary key (id)
-) ENGINE = InnoDB;
+| Trigger                     | Quando dispara           | O que faz                                                    |
+| :-------------------------- | :----------------------- | :----------------------------------------------------------- |
+| `tg_matricula_automatica`   | `AFTER INSERT` em Aluno  | Cria a matrícula do aluno no curso escolhido                 |
+| `tg_auditoria_update_aluno` | `AFTER UPDATE` em Aluno  | Se o nome mudou, salva o nome antigo e o novo na Auditoria   |
 
-select * from Auditoria;
+```
+INSERT em Aluno  ──►  tg_matricula_automatica   ──►  nova linha em Matricula
+UPDATE em Aluno  ──►  tg_auditoria_update_aluno ──►  nova linha em Auditoria
+```
 
-delimiter $$
-create trigger antesDeUpdate_Alunos
-before update on Alunos
-for each row
-begin 
-insert into Auditoria
-set acao = 'update',
-cod = OLD.cod,
-nome = OLD.nome,
-modificado = now();
-end$$
-delimiter ; 
+## O que o script pratica
 
-update Alunos set nome = "Carolina Freire" where cod = 1;
+- Criação de triggers com `DELIMITER`, `BEGIN ... END`
+- Uso de `NEW` e `OLD` para acessar os valores antes e depois da alteração
+- Condição dentro do trigger com `IF`
+- Chaves estrangeiras e valores padrão (`DEFAULT CURRENT_TIMESTAMP`)
+- `DROP TRIGGER IF EXISTS` para o script poder ser executado mais de uma vez
